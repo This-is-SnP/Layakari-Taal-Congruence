@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Laykari-Taal Congruence</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #fff;
+    color: #000;
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .card {
+    border: 2px solid #000;
+    padding: 30px 40px;
+    width: 380px;
+  }
+  h2 { margin: 0 0 4px 0; font-size: 22px; }
+  .sub { margin: 0 0 20px 0; font-size: 13px; color: #000; }
+  label { display: block; margin-top: 14px; font-size: 14px; }
+  input {
+    padding: 7px;
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid #000;
+    background: #fff;
+    color: #000;
+    font-size: 14px;
+    margin-top: 4px;
+  }
+  input:focus { outline: 2px solid #000; outline-offset: 1px; }
+  button {
+    margin-top: 18px;
+    padding: 8px 24px;
+    cursor: pointer;
+    background: #000;
+    color: #fff;
+    border: 1px solid #000;
+    font-size: 14px;
+  }
+  button:hover { background: #fff; color: #000; }
+  #result { margin-top: 22px; font-size: 18px; font-weight: bold; }
+</style>
+<base target="_blank">
+</head>
+<body>
+
+<div class="card">
+  <h2>Laykari-Taal Congruence</h2>
+  <p class="sub">- Matra from which Laykari can be done in one avartan</p>
+
+  <label>N: <input type="text" id="n" placeholder="number, decimal (2.5) or fraction (5/2)"></label>
+  <label>S: <input type="text" id="s" placeholder="number, decimal (1.5) or fraction (7/4)"></label>
+
+  <button onclick="calc()">Calculate</button>
+
+  <div id="result"></div>
+</div>
+
+<script>
+function gcd(a, b) {
+  a = Math.abs(a); b = Math.abs(b);
+  return b ? gcd(b, a % b) : a;
+}
+
+// Parse a decimal string like "1.25" into an exact fraction [numerator, denominator]
+function decToFrac(s) {
+  const parts = s.split('.');
+  const intPart = parseInt(parts[0] === '' ? '0' : parts[0], 10);
+  if (parts.length === 1) return [intPart, 1];
+  const fracStr = parts[1];
+  const fracVal = parseInt(fracStr, 10);
+  const denom = Math.pow(10, fracStr.length);
+  let num = intPart * denom + (intPart < 0 ? -fracVal : fracVal);
+  const g = gcd(num, denom);
+  return [num / g, denom / g];
+}
+
+// Parse a value: accepts "4", "1.5", "7/4", "1.25/2"
+function parseFraction(str) {
+  str = str.trim();
+  if (str.includes('/')) {
+    const parts = str.split('/');
+    if (parts.length !== 2) return null;
+    const n1 = decToFrac(parts[0].trim());
+    const n2 = decToFrac(parts[1].trim());
+    if (!n1 || !n2 || n2[0] === 0) return null;
+    let num = n1[0] * n2[1];
+    let den = n1[1] * n2[0];
+    if (den < 0) { num = -num; den = -den; }
+    const g = gcd(num, den);
+    return [num / g, den / g];
+  }
+  if (!/^-?\d*(\.\d+)?$/.test(str) || str === '' || str === '-' || str === '.') return null;
+  return decToFrac(str);
+}
+
+function calc() {
+  const nStr = document.getElementById('n').value.trim();
+  const sStr = document.getElementById('s').value.trim();
+  const out = document.getElementById('result');
+
+  const nf = parseFraction(nStr);
+  if (!nf) {
+    out.textContent = 'Please enter N as a number, decimal, or fraction (e.g. 10, 2.5, 5/2).';
+    return;
+  }
+  const n = nf[0], d = nf[1]; // N = n/d
+
+  const frac = parseFraction(sStr);
+  if (!frac) {
+    out.textContent = 'Please enter S as a number, decimal, or fraction (e.g. 4, 1.5, 7/4).';
+    return;
+  }
+  const a = frac[0], b = frac[1]; // S = a/b
+
+  if (a === 0) {
+    out.textContent = 'S cannot be 0.';
+    return;
+  }
+
+  // Z = N(S-1)/S = n(a-b)/(d*a)
+  let zn = n * (a - b);
+  let zd = d * a;
+  if (zd < 0) { zn = -zn; zd = -zd; }
+
+  // Special case: remainder 0 (Z is whole) -> Z = Z + 1
+  if (zn % zd === 0) zn += zd;
+
+  // Negative rule: while Z < 0, Z = N - |Z|
+  let guard = 0;
+  while (zn < 0 && guard < 100) {
+    zn = n * zd + d * zn;
+    zd = d * zd;
+    guard++;
+  }
+
+  // Simplify and display
+  const g = gcd(zn, zd);
+  zn /= g; zd /= g;
+
+  if (zd === 1) {
+    out.textContent = 'Z = ' + zn;
+  } else {
+    const q = Math.floor(zn / zd);
+    const r = zn - q * zd;
+    if (q === 0) {
+      out.textContent = 'Z = ' + r + '/' + zd;
+    } else {
+      out.textContent = 'Z = ' + q + ' ' + r + '/' + zd;
+    }
+  }
+}
+</script>
+
+</body>
+</html>
